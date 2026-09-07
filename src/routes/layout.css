@@ -1,0 +1,51 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   Design tokens — Tailwind v4 theme extension
+   ============================================================ */
+@theme {
+	--color-bg: #f6f5f3;
+	--color-ink: #131313;
+	--color-muted: #9a9a94;
+	--color-accent: #131313;
+	--color-line: rgba(19, 19, 19, 0.12);
+	--color-glass: rgba(255, 255, 255, 0.55);
+	--color-glass-strong: rgba(255, 255, 255, 0.82);
+
+	--font-display: 'Playfair Display', serif;
+	--font-body: 'Inter', sans-serif;
+
+	/* Card dimensions */
+	--card-w: 360px;
+	--card-h: 480px;
+}
+
+/* ============================================================
+   Base resets
+   ============================================================ */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	min-height: 100%;
+	background: var(--color-bg);
+	color: var(--color-ink);
+	font-family: var(--font-body);
+	overflow-x: hidden;
+}
+
+/* ============================================================
+   Mobile overrides
+   ============================================================ */
+@media (max-width: 720px) {
+	:root {
+		--card-w: 260px;
+		--card-h: 340px;
+	}
+}
