@@ -184,10 +184,10 @@
 		backdrop-filter: blur(3px);
 	}
 
-	@media (max-width: 720px) {
-		.card {
-			--c-w: clamp(240px, 75vw, 320px) !important;
-			--c-h: clamp(320px, 50vh, 420px) !important;
+	@media (max-width: 1024px) {
+		.card:hover .card-inner {
+			/* Disable hover slide-out on touch devices */
+			transform: none;
 		}
 	}
 

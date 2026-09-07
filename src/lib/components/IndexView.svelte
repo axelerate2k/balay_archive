@@ -27,23 +27,23 @@
 	}
 </script>
 
-<section class="fixed inset-0 z-20 bg-bg pt-24 pb-24 px-7 overflow-y-auto">
+<section class="index-view">
 	<!-- Controls -->
-	<div class="flex justify-between items-center mb-4 gap-3 flex-wrap">
+	<div class="controls-row">
 		<input
 			type="text"
 			placeholder="SEARCH RESORT NAME OR LOCATION..."
 			bind:value={searchQuery}
-			class="flex-1 min-w-[220px] max-w-[420px] border border-ink/12 bg-glass-strong px-3.5 py-2.5 text-xs tracking-wide text-ink outline-none font-body placeholder:text-muted"
+			class="search-input"
 		/>
-		<div class="text-[11px] tracking-widest text-muted font-body">
+		<div class="resort-count">
 			{filtered.length} RESORT{filtered.length === 1 ? '' : 'S'}
 		</div>
 	</div>
 
 	<!-- Table -->
-	<div class="border border-ink/12 bg-glass-strong backdrop-blur-md overflow-x-auto">
-		<table class="w-full border-collapse min-w-[1180px] text-xs font-body">
+	<div class="table-wrap">
+		<table class="data-table">
 			<thead>
 				<tr>
 					<th class="table-th">Resort Name</th>
@@ -61,7 +61,7 @@
 			<tbody>
 				{#each filtered as resort}
 					<tr
-						class="cursor-pointer transition-colors duration-200 hover:bg-black/[.03]"
+						class="table-row"
 						onclick={() => goto(`/${resort.slug}`)}
 						role="button"
 						tabindex="0"
@@ -69,7 +69,7 @@
 					>
 						<td class="table-td font-semibold">
 							{resort.name}
-							<span class="block font-normal text-muted text-[11px] mt-0.5">{resort.location}</span>
+							<span class="resort-location">{resort.location}</span>
 						</td>
 						<td class="table-td">{resort.contact}</td>
 						<td class="table-td">{resort.rate12}</td>
@@ -88,6 +88,70 @@
 </section>
 
 <style>
+	.index-view {
+		position: fixed;
+		inset: 0;
+		z-index: 20;
+		background: var(--color-bg);
+		padding-top: 96px;
+		padding-bottom: 96px;
+		padding-left: 28px;
+		padding-right: 28px;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.controls-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16px;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+
+	.search-input {
+		flex: 1;
+		min-width: 200px;
+		max-width: 420px;
+		border: 1px solid var(--color-line);
+		background: var(--color-glass-strong);
+		padding: 10px 14px;
+		font-size: 11px;
+		letter-spacing: 0.05em;
+		color: var(--color-ink);
+		outline: none;
+		font-family: var(--font-body);
+	}
+
+	.search-input::placeholder {
+		color: var(--color-muted);
+	}
+
+	.resort-count {
+		font-size: 11px;
+		letter-spacing: 0.1em;
+		color: var(--color-muted);
+		font-family: var(--font-body);
+		white-space: nowrap;
+	}
+
+	.table-wrap {
+		border: 1px solid var(--color-line);
+		background: var(--color-glass-strong);
+		backdrop-filter: blur(12px);
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.data-table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 1180px;
+		font-size: 12px;
+		font-family: var(--font-body);
+	}
+
 	.table-th {
 		text-align: left;
 		font-size: 10px;
@@ -100,6 +164,7 @@
 		position: sticky;
 		top: 0;
 		background: var(--color-glass-strong);
+		white-space: nowrap;
 	}
 
 	.table-td {
@@ -107,5 +172,37 @@
 		border-bottom: 1px solid var(--color-line);
 		vertical-align: top;
 		line-height: 1.45;
+	}
+
+	.table-row {
+		cursor: pointer;
+		transition: background-color 0.2s ease;
+	}
+
+	.table-row:hover {
+		background: rgba(0, 0, 0, 0.03);
+	}
+
+	.resort-location {
+		display: block;
+		font-weight: 400;
+		color: var(--color-muted);
+		font-size: 11px;
+		margin-top: 2px;
+	}
+
+	@media (max-width: 768px) {
+		.index-view {
+			padding-top: 80px;
+			padding-bottom: 80px;
+			padding-left: 16px;
+			padding-right: 16px;
+		}
+
+		.search-input {
+			min-width: 0;
+			width: 100%;
+			max-width: 100%;
+		}
 	}
 </style>

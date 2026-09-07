@@ -166,11 +166,14 @@
 <style>
 	.slug-page {
 		min-height: 100vh;
+		width: 100%;
 		background: var(--color-bg);
 		color: var(--color-ink);
 		display: flex;
 		flex-direction: column;
+		overflow-y: auto;
 		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	/* Top Navigation */

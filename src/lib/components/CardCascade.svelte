@@ -67,6 +67,10 @@
 		touchStartY = e.touches[0].clientY;
 	}
 
+	function handleTouchEnd() {
+		touchStartY = null;
+	}
+
 	onMount(() => {
 		cardEls = Array.from(cascadeEl.querySelectorAll('.card')) as HTMLElement[];
 		requestAnimationFrame(tick);
@@ -74,11 +78,13 @@
 		stageEl.addEventListener('wheel', handleWheel, { passive: false });
 		stageEl.addEventListener('touchstart', handleTouchStart, { passive: true });
 		stageEl.addEventListener('touchmove', handleTouchMove, { passive: true });
+		stageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
 		return () => {
 			stageEl.removeEventListener('wheel', handleWheel);
 			stageEl.removeEventListener('touchstart', handleTouchStart);
 			stageEl.removeEventListener('touchmove', handleTouchMove);
+			stageEl.removeEventListener('touchend', handleTouchEnd);
 		};
 	});
 </script>
@@ -91,7 +97,50 @@
 	</div>
 </main>
 
-<div class="fixed left-6 bottom-6 z-[35] flex items-center gap-2 text-[10.5px] tracking-wider text-muted font-body">
-	<span class="w-1.5 h-1.5 rounded-full bg-ink/70"></span>
-	scroll to browse · hover to preview · click for full details
+<div class="cascade-hint">
+	<span class="hint-dot"></span>
+	<span class="hint-text">scroll to browse · hover to preview · click for full details</span>
+	<span class="hint-text hint-touch">swipe to browse · tap for full details</span>
 </div>
+
+<style>
+	.cascade-hint {
+		position: fixed;
+		left: 24px;
+		bottom: 24px;
+		z-index: 35;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 10.5px;
+		letter-spacing: 0.06em;
+		color: var(--color-muted);
+		font-family: var(--font-body);
+	}
+
+	.hint-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: rgba(19,19,19,0.7);
+		flex-shrink: 0;
+	}
+
+	.hint-touch {
+		display: none;
+	}
+
+	@media (max-width: 768px) {
+		.cascade-hint {
+			left: 16px;
+			bottom: 72px; /* above the CornerNav */
+			font-size: 10px;
+		}
+		.hint-text:not(.hint-touch) {
+			display: none;
+		}
+		.hint-touch {
+			display: inline;
+		}
+	}
+</style>

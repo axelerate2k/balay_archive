@@ -1,37 +1,81 @@
 <script lang="ts">
 	import "./layout.css";
 	import { page } from "$app/stores";
+	import { activeView } from "$lib/stores/app";
 	import { supabase } from "$lib/supabaseClient";
 
 	let { data, children } = $props();
 
-	let email = $state("");
-	let password = $state("");
 	let errorMsg = $state("");
 	let status = $state("");
 
-	async function signInWithPassword(e: SubmitEvent) {
-		e.preventDefault();
-		if (!email || !password) return;
-		status = "Signing in…";
-		errorMsg = "";
-		try {
-			const { data: authData, error } =
-				await supabase.auth.signInWithPassword({
-					email,
-					password,
-				});
-			if (error) {
-				errorMsg = error.message;
-				status = "error";
-			} else if (authData.session) {
-				status = "redirecting…";
-				window.location.href = "/";
+	// Loading screen state
+	let loadingProgress = $state(0);
+	let loadingDone = $state(true);
+	let showApp = $state(true);
+
+	let loaderAnimFrame: number | null = null;
+	let loaderTimeout: any = null;
+
+	let previousPath: string | null = null;
+	let previousView: string | null = null;
+
+	// Trigger loading sequence on initial load, route navigation, and switching to overview
+	$effect(() => {
+		const currentPath = $page.url.pathname;
+		const currentView = $activeView;
+
+		if (data.session && data.allowed) {
+			const isPathChange = previousPath !== null && previousPath !== currentPath;
+			const isSwitchToOverview = previousView !== null && previousView !== "overview" && currentView === "overview";
+			const isInitial = previousPath === null;
+
+			if (isInitial || isPathChange || isSwitchToOverview) {
+				runLoader();
 			}
-		} catch (err: any) {
-			errorMsg = err?.message || "An error occurred";
-			status = "error";
+		} else {
+			loadingDone = true;
+			showApp = true;
 		}
+
+		previousPath = currentPath;
+		previousView = currentView;
+	});
+
+	function runLoader() {
+		if (loaderAnimFrame) cancelAnimationFrame(loaderAnimFrame);
+		if (loaderTimeout) clearTimeout(loaderTimeout);
+
+		loadingProgress = 0;
+		loadingDone = false;
+		showApp = false;
+
+		const duration = 600;
+		const start = performance.now();
+
+		function easeOut(t: number) {
+			return 1 - Math.pow(1 - t, 2);
+		}
+
+		function step(now: number) {
+			const elapsed = now - start;
+			const t = Math.min(elapsed / duration, 1);
+			loadingProgress = Math.round(easeOut(t) * 100);
+
+			if (t < 1) {
+				loaderAnimFrame = requestAnimationFrame(step);
+			} else {
+				loadingProgress = 100;
+				loaderTimeout = setTimeout(() => {
+					loadingDone = true;
+					setTimeout(() => {
+						showApp = true;
+					}, 150);
+				}, 100);
+			}
+		}
+
+		loaderAnimFrame = requestAnimationFrame(step);
 	}
 
 	async function signInWithGoogle() {
@@ -80,7 +124,7 @@
 {#if $page.url.pathname.startsWith("/auth/login")}
 	{@render children()}
 {:else if !data.session}
-	<!-- Not authenticated — show login redirect -->
+	<!-- Not authenticated — show Google-only login -->
 	<div class="gate-page">
 		<div class="gate-card">
 			<div class="gate-brand">
@@ -99,34 +143,6 @@
 			{#if status}
 				<div class="status">{status}</div>
 			{/if}
-
-			<form class="auth-form" onsubmit={signInWithPassword}>
-				<div class="form-group">
-					<input
-						type="email"
-						placeholder="Email address"
-						bind:value={email}
-						required
-						class="form-input"
-					/>
-				</div>
-				<div class="form-group">
-					<input
-						type="password"
-						placeholder="Password"
-						bind:value={password}
-						required
-						class="form-input"
-					/>
-				</div>
-				<button type="submit" class="submit-btn">
-					Sign In with Password
-				</button>
-			</form>
-
-			<div class="divider">
-				<span>OR</span>
-			</div>
 
 			<button
 				type="button"
@@ -171,20 +187,31 @@
 		</div>
 	</div>
 {:else}
-	{#if data.isAdmin && !$page.url.pathname.startsWith("/admin")}
-		<div style="position: fixed; top: 16px; right: 20px; z-index: 50;">
-			<a
-				href="/admin"
-				style="display: inline-block; padding: 7px 14px; border: 1px solid var(--color-line); background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); font-family: var(--font-body); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--color-ink); text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: all 0.2s ease;"
-			>
-				Admin Panel →
-			</a>
+	<!-- Minimal loading screen -->
+	{#if !loadingDone}
+		<div class="app-loader" class:loader-fade-out={loadingDone}>
+			<span class="loader-counter">{loadingProgress}%</span>
 		</div>
 	{/if}
-	{@render children()}
+
+	<!-- App content (hidden until loader done) -->
+	<div class="app-shell" class:app-shell-visible={showApp}>
+		{#if data.isAdmin && !$page.url.pathname.startsWith("/admin")}
+			<div style="position: fixed; top: 16px; right: 20px; z-index: 50;">
+				<a
+					href="/admin"
+					style="display: inline-block; padding: 7px 14px; border: 1px solid var(--color-line); background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); font-family: var(--font-body); font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--color-ink); text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: all 0.2s ease;"
+				>
+					Admin Panel →
+				</a>
+			</div>
+		{/if}
+		{@render children()}
+	</div>
 {/if}
 
 <style>
+	/* ── Gate (login / restricted) ─────────────────────────── */
 	.gate-page {
 		position: fixed;
 		inset: 0;
@@ -237,84 +264,13 @@
 		margin: 0 0 28px;
 	}
 
-	.auth-form {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		margin-bottom: 20px;
-	}
-
-	.form-group {
-		width: 100%;
-	}
-
-	.form-input {
-		width: 100%;
-		padding: 12px 14px;
-		border: 1px solid var(--color-line);
-		background: white;
-		font-family: var(--font-body);
-		font-size: 13px;
-		color: var(--color-ink);
-		box-sizing: border-box;
-		outline: none;
-		transition: border-color 0.2s ease;
-	}
-
-	.form-input:focus {
-		border-color: var(--color-ink);
-	}
-
-	.submit-btn {
-		width: 100%;
-		padding: 12px;
-		border: 1px solid var(--color-ink);
-		background: var(--color-ink);
-		color: white;
-		font-family: var(--font-body);
-		font-size: 13px;
-		font-weight: 500;
-		letter-spacing: 0.02em;
-		cursor: pointer;
-		transition: opacity 0.2s ease;
-	}
-
-	.submit-btn:hover {
-		opacity: 0.9;
-	}
-
-	.divider {
-		position: relative;
-		text-align: center;
-		margin: 20px 0;
-	}
-
-	.divider::before {
-		content: "";
-		position: absolute;
-		top: 50%;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: var(--color-line);
-	}
-
-	.divider span {
-		position: relative;
-		background: var(--color-bg);
-		padding: 0 12px;
-		font-size: 11px;
-		color: var(--color-muted);
-		letter-spacing: 0.05em;
-	}
-
 	.gate-google-btn {
 		width: 100%;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 10px;
-		padding: 12px 28px;
+		padding: 14px 28px;
 		border: 1px solid var(--color-line);
 		background: white;
 		font-family: var(--font-body);
@@ -366,5 +322,43 @@
 	.gate-signout:hover {
 		background: var(--color-bg);
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+	}
+
+	/* ── App loading screen ─────────────────────────────────── */
+	.app-loader {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		background: var(--color-bg);
+		display: grid;
+		place-items: center;
+		transition: opacity 0.25s ease;
+	}
+
+	.app-loader.loader-fade-out {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.loader-counter {
+		font-family: var(--font-body);
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: 0.12em;
+		color: var(--color-ink);
+		opacity: 0.65;
+		user-select: none;
+	}
+
+	/* ── App shell (fade-in after loader) ───────────────────── */
+	.app-shell {
+		opacity: 0;
+		transition: opacity 0.35s ease;
+		pointer-events: none;
+	}
+
+	.app-shell.app-shell-visible {
+		opacity: 1;
+		pointer-events: auto;
 	}
 </style>

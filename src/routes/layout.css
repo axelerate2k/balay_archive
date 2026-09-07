@@ -38,14 +38,26 @@ body {
 	color: var(--color-ink);
 	font-family: var(--font-body);
 	overflow-x: hidden;
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
 }
 
 /* ============================================================
-   Mobile overrides
+   Tablet (769px – 1024px)
    ============================================================ */
-@media (max-width: 720px) {
+@media (min-width: 769px) and (max-width: 1024px) {
 	:root {
-		--card-w: 260px;
-		--card-h: 340px;
+		--card-w: 300px;
+		--card-h: 400px;
+	}
+}
+
+/* ============================================================
+   Mobile (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+	:root {
+		--card-w: 240px;
+		--card-h: 320px;
 	}
 }
