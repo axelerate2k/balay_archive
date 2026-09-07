@@ -89,6 +89,7 @@
 			src={imgSrc}
 			alt={resort.name}
 			loading="lazy"
+			draggable="false"
 			onload={handleImageLoad}
 		/>
 
@@ -115,9 +116,11 @@
 		margin: calc(var(--c-h, var(--card-h)) / -2) 0 0 calc(var(--c-w, var(--card-w)) / -2);
 		transform-style: preserve-3d;
 		will-change: transform;
-		cursor: pointer;
+		cursor: grab;
 		display: block;
 		text-decoration: none;
+		user-select: none;
+		-webkit-user-drag: none;
 	}
 
 	.card-inner {

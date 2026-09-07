@@ -787,16 +787,69 @@
     }, { passive: false });
 
     // touch support pang mobile
+    let touch_start_x = null;
     let touch_start_y = null;
     stage_el.addEventListener("touchstart", (e) => {
+      touch_start_x = e.touches[0].clientX;
       touch_start_y = e.touches[0].clientY;
     });
     stage_el.addEventListener("touchmove", (e) => {
-      if (touch_start_y === null) return;
-      const dy = touch_start_y - e.touches[0].clientY;
-      scroll_target += dy * 2.2;
+      if (touch_start_y === null || touch_start_x === null) return;
+      const dx = e.touches[0].clientX - touch_start_x;
+      const dy = e.touches[0].clientY - touch_start_y;
+      scroll_target += (dx * dir_x + dy * dir_y) * 1.8;
+      touch_start_x = e.touches[0].clientX;
       touch_start_y = e.touches[0].clientY;
     }, { passive: true });
+    stage_el.addEventListener("touchend", () => {
+      touch_start_x = null;
+      touch_start_y = null;
+    });
+
+    // mouse drag support
+    let is_dragging = false;
+    let has_dragged = false;
+    let drag_start_x = 0;
+    let drag_start_y = 0;
+    let last_mouse_x = 0;
+    let last_mouse_y = 0;
+
+    stage_el.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      is_dragging = true;
+      has_dragged = false;
+      drag_start_x = e.clientX;
+      drag_start_y = e.clientY;
+      last_mouse_x = e.clientX;
+      last_mouse_y = e.clientY;
+      stage_el.style.cursor = "grabbing";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!is_dragging) return;
+      const dx = e.clientX - last_mouse_x;
+      const dy = e.clientY - last_mouse_y;
+      if (Math.hypot(e.clientX - drag_start_x, e.clientY - drag_start_y) > 5) {
+        has_dragged = true;
+      }
+      scroll_target += (dx * dir_x + dy * dir_y) * 1.8;
+      last_mouse_x = e.clientX;
+      last_mouse_y = e.clientY;
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!is_dragging) return;
+      is_dragging = false;
+      stage_el.style.cursor = "grab";
+    });
+
+    stage_el.addEventListener("click", (e) => {
+      if (has_dragged) {
+        e.preventDefault();
+        e.stopPropagation();
+        has_dragged = false;
+      }
+    }, { capture: true });
 
     /* ============================================================
        3. INDEX — table view (yung actual repository)

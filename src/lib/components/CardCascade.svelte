@@ -24,7 +24,18 @@
 	let scrollTarget = 0;
 	let scrollCurrent = 0;
 	let cardEls: HTMLElement[] = [];
+
+	// Touch tracking
+	let touchStartX: number | null = null;
 	let touchStartY: number | null = null;
+
+	// Mouse drag tracking
+	let isDragging = $state(false);
+	let hasDragged = false;
+	let dragStartX = 0;
+	let dragStartY = 0;
+	let lastMouseX = 0;
+	let lastMouseY = 0;
 
 	function wrapPosition(raw: number): number {
 		const span = total * stepLen;
@@ -56,19 +67,64 @@
 		scrollTarget += (e.deltaY + e.deltaX) * 1.1;
 	}
 
+	// Touch interaction
 	function handleTouchStart(e: TouchEvent) {
+		touchStartX = e.touches[0].clientX;
 		touchStartY = e.touches[0].clientY;
 	}
 
 	function handleTouchMove(e: TouchEvent) {
-		if (touchStartY === null) return;
-		const dy = touchStartY - e.touches[0].clientY;
-		scrollTarget += dy * 2.2;
+		if (touchStartY === null || touchStartX === null) return;
+		const dx = e.touches[0].clientX - touchStartX;
+		const dy = e.touches[0].clientY - touchStartY;
+		scrollTarget += (dx * dirX + dy * dirY) * 1.8;
+		touchStartX = e.touches[0].clientX;
 		touchStartY = e.touches[0].clientY;
 	}
 
 	function handleTouchEnd() {
+		touchStartX = null;
 		touchStartY = null;
+	}
+
+	// Mouse drag interaction
+	function handleMouseDown(e: MouseEvent) {
+		if (e.button !== 0) return;
+		isDragging = true;
+		hasDragged = false;
+		dragStartX = e.clientX;
+		dragStartY = e.clientY;
+		lastMouseX = e.clientX;
+		lastMouseY = e.clientY;
+	}
+
+	function handleMouseMove(e: MouseEvent) {
+		if (!isDragging) return;
+		const dx = e.clientX - lastMouseX;
+		const dy = e.clientY - lastMouseY;
+
+		const totalDist = Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY);
+		if (totalDist > 5) {
+			hasDragged = true;
+		}
+
+		scrollTarget += (dx * dirX + dy * dirY) * 1.8;
+		lastMouseX = e.clientX;
+		lastMouseY = e.clientY;
+	}
+
+	function handleMouseUp() {
+		if (!isDragging) return;
+		isDragging = false;
+	}
+
+	// Prevent card click navigation if dragged
+	function handleClickCapture(e: MouseEvent) {
+		if (hasDragged) {
+			e.preventDefault();
+			e.stopPropagation();
+			hasDragged = false;
+		}
 	}
 
 	onMount(() => {
@@ -80,16 +136,30 @@
 		stageEl.addEventListener('touchmove', handleTouchMove, { passive: true });
 		stageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
 
+		stageEl.addEventListener('mousedown', handleMouseDown);
+		window.addEventListener('mousemove', handleMouseMove);
+		window.addEventListener('mouseup', handleMouseUp);
+		stageEl.addEventListener('click', handleClickCapture, { capture: true });
+
 		return () => {
 			stageEl.removeEventListener('wheel', handleWheel);
 			stageEl.removeEventListener('touchstart', handleTouchStart);
 			stageEl.removeEventListener('touchmove', handleTouchMove);
 			stageEl.removeEventListener('touchend', handleTouchEnd);
+
+			stageEl.removeEventListener('mousedown', handleMouseDown);
+			window.removeEventListener('mousemove', handleMouseMove);
+			window.removeEventListener('mouseup', handleMouseUp);
+			stageEl.removeEventListener('click', handleClickCapture, { capture: true });
 		};
 	});
 </script>
 
-<main bind:this={stageEl} class="relative w-full h-screen overflow-hidden" style="perspective: 2400px;">
+<main
+	bind:this={stageEl}
+	class="stage-wrap {isDragging ? 'is-dragging' : ''}"
+	style="perspective: 2400px;"
+>
 	<div bind:this={cascadeEl} class="absolute inset-0" style="transform-style: preserve-3d;">
 		{#each cascadeItems as resort, i}
 			<Card {resort} index={i % resorts.length} />
@@ -99,11 +169,26 @@
 
 <div class="cascade-hint">
 	<span class="hint-dot"></span>
-	<span class="hint-text">scroll to browse · hover to preview · click for full details</span>
-	<span class="hint-text hint-touch">swipe to browse · tap for full details</span>
+	<span class="hint-text">drag or scroll to browse · hover to preview · click for full details</span>
+	<span class="hint-text hint-touch">drag or swipe to browse · tap for full details</span>
 </div>
 
 <style>
+	.stage-wrap {
+		position: relative;
+		width: 100%;
+		height: 100vh;
+		overflow: hidden;
+		cursor: grab;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	.stage-wrap.is-dragging,
+	.stage-wrap.is-dragging :global(.card) {
+		cursor: grabbing !important;
+	}
+
 	.cascade-hint {
 		position: fixed;
 		left: 24px;
@@ -116,6 +201,7 @@
 		letter-spacing: 0.06em;
 		color: var(--color-muted);
 		font-family: var(--font-body);
+		pointer-events: none;
 	}
 
 	.hint-dot {
