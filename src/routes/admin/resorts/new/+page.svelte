@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>New Resort — Admin — HAVEN Archive</title>
+	<title>New Resort — Admin - balay archive</title>
 </svelte:head>
 
 <div class="form-page">
@@ -145,7 +145,11 @@
 
 			<div class="field full">
 				<label for="photos">Gallery Photos</label>
-				<PhotoUploadDropzone id="photos" name="photos" multiple={true} />
+				<PhotoUploadDropzone
+					id="photos"
+					name="photos"
+					multiple={true}
+				/>
 			</div>
 		</div>
 
