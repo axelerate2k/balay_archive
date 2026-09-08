@@ -154,8 +154,9 @@
 			filter 0.55s ease;
 	}
 
-	/* Slide RIGHT on hover — reveal full card without overlapping neighbors */
-	.card:hover .card-inner {
+	/* Slide RIGHT on hover (PC) OR when is-center (mobile/tablet) */
+	.card:hover .card-inner,
+	:global(.card.is-center) .card-inner {
 		transform: translateX(160px);
 		filter: brightness(1.04);
 	}
@@ -206,8 +207,24 @@
 
 	@media (max-width: 1024px) {
 		.card:hover .card-inner {
-			/* Disable hover slide-out on touch devices */
+			/* Disable hover slide-out on touch devices in favor of is-center */
 			transform: none;
+		}
+
+		:global(.card.is-center) .card-inner {
+			transform: translateX(100px);
+			filter: brightness(1.04);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.card:hover .card-inner {
+			transform: none;
+		}
+
+		:global(.card.is-center) .card-inner {
+			transform: translateX(80px);
+			filter: brightness(1.04);
 		}
 	}
 

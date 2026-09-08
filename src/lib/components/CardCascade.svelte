@@ -58,6 +58,8 @@
 	let lastMouseX = 0;
 	let lastMouseY = 0;
 
+	let lastCenterIdx = -1;
+
 	function wrapPosition(raw: number): number {
 		const span = total * stepLen;
 		let v = raw % span;
@@ -66,15 +68,35 @@
 	}
 
 	function renderCascade() {
+		let minAbsPos = Infinity;
+		let activeIdx = -1;
+
 		cardEls.forEach((card, i) => {
 			if (!card) return;
 			const raw = i * stepLen + scrollCurrent;
 			const pos = wrapPosition(raw);
+			const absPos = Math.abs(pos);
+			if (absPos < minAbsPos) {
+				minAbsPos = absPos;
+				activeIdx = i;
+			}
 			const x = pos * dirX;
 			const y = pos * dirY;
 			card.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) rotateX(7deg) rotateY(-20deg)`;
-			card.style.zIndex = String(Math.round(1000 - Math.abs(pos)));
+			card.style.zIndex = String(Math.round(1000 - absPos));
 		});
+
+		if (activeIdx !== lastCenterIdx) {
+			lastCenterIdx = activeIdx;
+			cardEls.forEach((card, i) => {
+				if (!card) return;
+				if (i === activeIdx) {
+					card.classList.add('is-center');
+				} else {
+					card.classList.remove('is-center');
+				}
+			});
+		}
 	}
 
 	function tick() {
