@@ -13,6 +13,7 @@
 
 	let cardWidth = $state<number | null>(null);
 	let cardHeight = $state<number | null>(null);
+	let imgElement: HTMLImageElement | null = null;
 
 	const tag = $derived(`balay | ${String(index + 1).padStart(2, "0")}`);
 
@@ -31,38 +32,50 @@
 		hoveredResort.set(null);
 	}
 
-	function handleImageLoad(e: Event) {
-		const img = e.currentTarget as HTMLImageElement;
-		if (!img || !img.naturalWidth || !img.naturalHeight) return;
+	function computeDimensions() {
+		if (!imgElement || !imgElement.naturalWidth || !imgElement.naturalHeight) return;
 
-		const nw = img.naturalWidth;
-		const nh = img.naturalHeight;
+		const nw = imgElement.naturalWidth;
+		const nh = imgElement.naturalHeight;
 		const ar = nw / nh;
+
+		const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+		let scale = 1.0;
+		if (winW <= 480) {
+			scale = 0.55;
+		} else if (winW <= 768) {
+			scale = 0.65;
+		} else if (winW <= 1024) {
+			scale = 0.8;
+		}
 
 		let w: number;
 		let h: number;
 
 		if (ar >= 1.25) {
 			// Landscape (wide card)
-			w = Math.min(470, Math.max(390, Math.round(340 * Math.sqrt(ar))));
+			w = Math.round(Math.min(460, Math.max(380, 340 * Math.sqrt(ar))) * scale);
 			h = Math.round(w / ar);
-			// Clamp landscape height
-			h = Math.min(330, Math.max(260, h));
+			h = Math.round(Math.min(320 * scale, Math.max(250 * scale, h)));
 		} else if (ar <= 0.85) {
 			// Portrait (tall card)
-			h = Math.min(510, Math.max(430, Math.round(420 / Math.sqrt(ar))));
+			h = Math.round(Math.min(500, Math.max(420, 420 / Math.sqrt(ar))) * scale);
 			w = Math.round(h * ar);
-			// Clamp portrait width
-			w = Math.min(360, Math.max(290, w));
+			w = Math.round(Math.min(350 * scale, Math.max(280 * scale, w)));
 		} else {
 			// Square / balanced
-			w = 370;
-			h = Math.round(370 / ar);
-			h = Math.min(410, Math.max(340, h));
+			w = Math.round(360 * scale);
+			h = Math.round(w / ar);
+			h = Math.round(Math.min(400 * scale, Math.max(330 * scale, h)));
 		}
 
 		cardWidth = w;
 		cardHeight = h;
+	}
+
+	function handleImageLoad(e: Event) {
+		imgElement = e.currentTarget as HTMLImageElement;
+		computeDimensions();
 	}
 
 	function handleClick(e: MouseEvent) {
@@ -73,6 +86,8 @@
 		}
 	}
 </script>
+
+<svelte:window onresize={computeDimensions} />
 
 <a
 	href="/{resort.slug}"
@@ -120,7 +135,9 @@
 		display: block;
 		text-decoration: none;
 		user-select: none;
+		-webkit-user-select: none;
 		-webkit-user-drag: none;
+		touch-action: none;
 	}
 
 	.card-inner {

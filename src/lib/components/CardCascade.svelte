@@ -16,10 +16,30 @@
 	const cascadeItems = $derived([...resorts, ...resorts]);
 	const total = $derived(cascadeItems.length);
 
-	// Diagonal direction vector
-	const stepLen = Math.hypot(132, 96);
-	const dirX = -132 / stepLen;
-	const dirY = 96 / stepLen;
+	// Diagonal direction vector & responsive step
+	let stepLen = $state(Math.hypot(132, 96));
+	let dirX = $state(-132 / Math.hypot(132, 96));
+	let dirY = $state(96 / Math.hypot(132, 96));
+
+	function updateStepVector() {
+		const winW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+		let sx = -132;
+		let sy = 96;
+		if (winW <= 480) {
+			sx = -76;
+			sy = 56;
+		} else if (winW <= 768) {
+			sx = -88;
+			sy = 64;
+		} else if (winW <= 1024) {
+			sx = -108;
+			sy = 78;
+		}
+		const len = Math.hypot(sx, sy);
+		stepLen = len;
+		dirX = sx / len;
+		dirY = sy / len;
+	}
 
 	let scrollTarget = 0;
 	let scrollCurrent = 0;
@@ -28,6 +48,7 @@
 	// Touch tracking
 	let touchStartX: number | null = null;
 	let touchStartY: number | null = null;
+	let touchMoved = false;
 
 	// Mouse drag tracking
 	let isDragging = $state(false);
@@ -69,22 +90,45 @@
 
 	// Touch interaction
 	function handleTouchStart(e: TouchEvent) {
-		touchStartX = e.touches[0].clientX;
-		touchStartY = e.touches[0].clientY;
+		if (e.touches.length === 1) {
+			touchStartX = e.touches[0].clientX;
+			touchStartY = e.touches[0].clientY;
+			touchMoved = false;
+		}
 	}
 
 	function handleTouchMove(e: TouchEvent) {
-		if (touchStartY === null || touchStartX === null) return;
-		const dx = e.touches[0].clientX - touchStartX;
-		const dy = e.touches[0].clientY - touchStartY;
+		if (touchStartY === null || touchStartX === null || e.touches.length !== 1) return;
+		
+		const currentX = e.touches[0].clientX;
+		const currentY = e.touches[0].clientY;
+		const dx = currentX - touchStartX;
+		const dy = currentY - touchStartY;
+
+		const dist = Math.hypot(dx, dy);
+		if (dist > 5) {
+			touchMoved = true;
+			hasDragged = true;
+		}
+
+		if (e.cancelable) {
+			e.preventDefault();
+		}
+
 		scrollTarget += (dx * dirX + dy * dirY) * 1.8;
-		touchStartX = e.touches[0].clientX;
-		touchStartY = e.touches[0].clientY;
+		touchStartX = currentX;
+		touchStartY = currentY;
 	}
 
 	function handleTouchEnd() {
 		touchStartX = null;
 		touchStartY = null;
+		if (touchMoved) {
+			setTimeout(() => {
+				hasDragged = false;
+				touchMoved = false;
+			}, 50);
+		}
 	}
 
 	// Mouse drag interaction
@@ -116,25 +160,31 @@
 	function handleMouseUp() {
 		if (!isDragging) return;
 		isDragging = false;
+		if (hasDragged) {
+			setTimeout(() => {
+				hasDragged = false;
+			}, 50);
+		}
 	}
 
 	// Prevent card click navigation if dragged
 	function handleClickCapture(e: MouseEvent) {
-		if (hasDragged) {
+		if (hasDragged || touchMoved) {
 			e.preventDefault();
 			e.stopPropagation();
-			hasDragged = false;
 		}
 	}
 
 	onMount(() => {
+		updateStepVector();
 		cardEls = Array.from(cascadeEl.querySelectorAll('.card')) as HTMLElement[];
 		requestAnimationFrame(tick);
 
 		stageEl.addEventListener('wheel', handleWheel, { passive: false });
 		stageEl.addEventListener('touchstart', handleTouchStart, { passive: true });
-		stageEl.addEventListener('touchmove', handleTouchMove, { passive: true });
+		stageEl.addEventListener('touchmove', handleTouchMove, { passive: false });
 		stageEl.addEventListener('touchend', handleTouchEnd, { passive: true });
+		stageEl.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
 		stageEl.addEventListener('mousedown', handleMouseDown);
 		window.addEventListener('mousemove', handleMouseMove);
@@ -146,6 +196,7 @@
 			stageEl.removeEventListener('touchstart', handleTouchStart);
 			stageEl.removeEventListener('touchmove', handleTouchMove);
 			stageEl.removeEventListener('touchend', handleTouchEnd);
+			stageEl.removeEventListener('touchcancel', handleTouchEnd);
 
 			stageEl.removeEventListener('mousedown', handleMouseDown);
 			window.removeEventListener('mousemove', handleMouseMove);
@@ -155,10 +206,11 @@
 	});
 </script>
 
+<svelte:window onresize={updateStepVector} />
+
 <main
 	bind:this={stageEl}
 	class="stage-wrap {isDragging ? 'is-dragging' : ''}"
-	style="perspective: 2400px;"
 >
 	<div bind:this={cascadeEl} class="absolute inset-0" style="transform-style: preserve-3d;">
 		{#each cascadeItems as resort, i}
@@ -175,13 +227,18 @@
 
 <style>
 	.stage-wrap {
-		position: relative;
+		position: fixed;
+		inset: 0;
 		width: 100%;
-		height: 100vh;
+		height: 100%;
+		height: 100dvh;
 		overflow: hidden;
 		cursor: grab;
 		user-select: none;
 		-webkit-user-select: none;
+		touch-action: none;
+		overscroll-behavior: none;
+		perspective: clamp(1400px, 180vw, 2400px);
 	}
 
 	.stage-wrap.is-dragging,

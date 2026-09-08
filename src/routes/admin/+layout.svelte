@@ -22,10 +22,16 @@
 
 <style>
 	.admin-shell {
-		min-height: 100vh;
+		position: fixed;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		height: 100dvh;
 		background: var(--color-bg);
 		font-family: var(--font-body);
 		overflow-y: auto;
+		overscroll-behavior-y: contain;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	.admin-header {

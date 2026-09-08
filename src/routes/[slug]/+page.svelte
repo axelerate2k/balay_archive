@@ -165,14 +165,18 @@
 
 <style>
 	.slug-page {
-		min-height: 100vh;
+		position: fixed;
+		inset: 0;
 		width: 100%;
+		height: 100%;
+		height: 100dvh;
 		background: var(--color-bg);
 		color: var(--color-ink);
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
 		overflow-x: hidden;
+		overscroll-behavior-y: contain;
 		-webkit-overflow-scrolling: touch;
 	}
 
