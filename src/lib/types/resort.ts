@@ -15,6 +15,8 @@ export interface Resort {
 	gallery: string[];
 	/** Used for placeholder image generation — fallback when no gallery photos exist */
 	image_seed: string;
+	latitude?: number | null;
+	longitude?: number | null;
 	created_at?: string;
 	updated_at?: string;
 }

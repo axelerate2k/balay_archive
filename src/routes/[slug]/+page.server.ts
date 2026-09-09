@@ -42,6 +42,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			);
 		}
 
+		const mockMatch = mockResorts.find(
+			(m) => m.slug === r.slug || m.id === r.slug || m.name.toLowerCase() === r.name.toLowerCase()
+		);
+		const latitude = r.latitude != null ? Number(r.latitude) : (mockMatch?.latitude ?? null);
+		const longitude = r.longitude != null ? Number(r.longitude) : (mockMatch?.longitude ?? null);
+
 		const resort: Resort = {
 			id: r.id,
 			slug: r.slug,
@@ -58,6 +64,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			amenities: r.amenities ?? [],
 			gallery: galleryUrls,
 			image_seed: r.slug,
+			latitude,
+			longitude,
 			created_at: r.created_at,
 			updated_at: r.updated_at
 		};

@@ -118,6 +118,19 @@
 		<div class="card-tag font-body">
 			{tag}
 		</div>
+
+		<!-- Center / hover revealed details banner -->
+		<div class="card-details">
+			<div class="card-details-name font-display">{resort.name}</div>
+			<div class="card-details-meta font-body">
+				{#if resort.pax}
+					<span class="meta-pill">{resort.pax}</span>
+				{/if}
+				{#if resort.rate22 || resort.rate12}
+					<span class="meta-pill price-pill">{resort.rate22 || resort.rate12}</span>
+				{/if}
+			</div>
+		</div>
 	</div>
 </a>
 
@@ -203,6 +216,72 @@
 		padding: 5px 8px;
 		background: rgba(0, 0, 0, 0.28);
 		backdrop-filter: blur(3px);
+	}
+
+	.card-details {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding: 24px 18px 16px;
+		background: linear-gradient(
+			to top,
+			rgba(19, 19, 19, 0.88) 0%,
+			rgba(19, 19, 19, 0.5) 60%,
+			transparent 100%
+		);
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		opacity: 0;
+		transform: translateY(12px);
+		transition:
+			opacity 0.45s ease,
+			transform 0.45s cubic-bezier(0.22, 0.8, 0.25, 1);
+		pointer-events: none;
+		z-index: 5;
+	}
+
+	.card:hover .card-details,
+	:global(.card.is-center) .card-details {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.card-details-name {
+		font-size: 16px;
+		font-weight: 600;
+		color: #ffffff;
+		line-height: 1.25;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+		letter-spacing: -0.01em;
+	}
+
+	.card-details-meta {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.meta-pill {
+		font-size: 10px;
+		font-weight: 500;
+		letter-spacing: 0.04em;
+		color: rgba(255, 255, 255, 0.95);
+		background: rgba(255, 255, 255, 0.18);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		padding: 3px 8px;
+		border-radius: 999px;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+	}
+
+	.meta-pill.price-pill {
+		background: #ffffff;
+		color: #131313;
+		font-weight: 600;
+		border-color: #ffffff;
 	}
 
 	@media (max-width: 1024px) {

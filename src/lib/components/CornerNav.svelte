@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { activeView } from '$lib/stores/app';
 
-	const modes: { label: string; value: 'overview' | 'index' }[] = [
+	const modes: { label: string; value: 'overview' | 'index' | 'map' }[] = [
 		{ label: 'OVERVIEW', value: 'overview' },
-		{ label: 'INDEX', value: 'index' }
+		{ label: 'INDEX', value: 'index' },
+		{ label: 'MAP', value: 'map' }
 	];
 </script>
 

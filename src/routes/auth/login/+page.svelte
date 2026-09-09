@@ -60,7 +60,7 @@
 </script>
 
 <svelte:head>
-	<title>Sign In — HAVEN Archive</title>
+	<title>Sign In — balay</title>
 </svelte:head>
 
 <div class="login-page">

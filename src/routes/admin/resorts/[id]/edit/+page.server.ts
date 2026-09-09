@@ -67,6 +67,11 @@ export const actions: Actions = {
 			.map((s) => s.trim())
 			.filter(Boolean) || [];
 
+		const latRaw = (formData.get('latitude') as string)?.trim();
+		const lngRaw = (formData.get('longitude') as string)?.trim();
+		const latitude = latRaw ? parseFloat(latRaw) : null;
+		const longitude = lngRaw ? parseFloat(lngRaw) : null;
+
 		if (!name || !location) {
 			return fail(400, { error: 'Resort name and location are required.' });
 		}
@@ -129,25 +134,42 @@ export const actions: Actions = {
 		}
 
 		// Update resort
-		const { error } = await adminSupabase
+		const updatePayload: Record<string, any> = {
+			name,
+			slug,
+			location,
+			contact,
+			rate_12h,
+			rate_22h,
+			pax,
+			add_pax_rate,
+			rooms,
+			pool,
+			inclusions,
+			amenities,
+			gallery,
+			updated_at: new Date().toISOString()
+		};
+
+		if (latitude != null) updatePayload.latitude = latitude;
+		if (longitude != null) updatePayload.longitude = longitude;
+
+		let { error } = await adminSupabase
 			.from('resorts')
-			.update({
-				name,
-				slug,
-				location,
-				contact,
-				rate_12h,
-				rate_22h,
-				pax,
-				add_pax_rate,
-				rooms,
-				pool,
-				inclusions,
-				amenities,
-				gallery,
-				updated_at: new Date().toISOString()
-			})
+			.update(updatePayload)
 			.eq('id', params.id);
+
+		// If latitude column does not exist in schema cache, retry without coordinates
+		if (error && (error.message?.includes('latitude') || error.code === 'PGRST204' || error.code === '42703')) {
+			console.warn('Latitude column not found in Supabase schema, retrying update without coordinates.');
+			delete updatePayload.latitude;
+			delete updatePayload.longitude;
+			const retry = await adminSupabase
+				.from('resorts')
+				.update(updatePayload)
+				.eq('id', params.id);
+			error = retry.error;
+		}
 
 		if (error) {
 			return fail(500, { error: error.message });

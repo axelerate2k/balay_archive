@@ -5,6 +5,7 @@
 	import CardCascade from '$lib/components/CardCascade.svelte';
 	import InfoPanel from '$lib/components/InfoPanel.svelte';
 	import IndexView from '$lib/components/IndexView.svelte';
+	import MapView from '$lib/components/MapView.svelte';
 
 	let { data } = $props();
 </script>
@@ -21,8 +22,10 @@
 {:else if $activeView === 'overview'}
 	<CardCascade resorts={data.resorts} />
 	<InfoPanel />
-{:else}
+{:else if $activeView === 'index'}
 	<IndexView resorts={data.resorts} />
+{:else if $activeView === 'map'}
+	<MapView resorts={data.resorts} />
 {/if}
 
 <CornerNav />

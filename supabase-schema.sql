@@ -19,6 +19,8 @@ create table if not exists resorts (
   inclusions text[] default '{}',
   amenities text[] default '{}',
   gallery text[] default '{}',
+  latitude double precision,
+  longitude double precision,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

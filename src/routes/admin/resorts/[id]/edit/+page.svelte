@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import PhotoUploadDropzone from '$lib/components/PhotoUploadDropzone.svelte';
+	import MapPinPicker from '$lib/components/MapPinPicker.svelte';
 
 	let { data, form } = $props();
 	let submitting = $state(false);
@@ -53,7 +54,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit {r.name} — Admin — HAVEN Archive</title>
+	<title>Edit {r.name} — Admin — balay</title>
 </svelte:head>
 
 <div class="form-page">
@@ -84,6 +85,10 @@
 			<div class="field">
 				<label for="contact">Contact</label>
 				<input id="contact" name="contact" type="text" value={r.contact ?? ''} />
+			</div>
+
+			<div class="field full">
+				<MapPinPicker latitude={r.latitude} longitude={r.longitude} />
 			</div>
 
 			<div class="field">

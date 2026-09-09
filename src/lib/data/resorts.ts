@@ -21,13 +21,15 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Kitchen use', 'Free parking', 'Gazebo'],
 		amenities: ['Videoke', 'Bilyar', 'Basketball hoop', 'Native cottages'],
 		gallery: [],
-		image_seed: 'villa-marina'
+		image_seed: 'villa-marina',
+		latitude: 14.1785,
+		longitude: 121.182
 	},
 	{
 		id: 'casa-verde',
 		slug: 'casa-verde',
 		name: 'Casa Verde Nature Resort',
-		location: 'Tagaytay',
+		location: 'Pansol, Calamba',
 		contact: '0918 222 3333 · fb.com/casaverdenature',
 		rate12: '₱8,000',
 		rate22: '₱12,000',
@@ -38,13 +40,15 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Function hall', 'Sound system', 'Free ice'],
 		amenities: ['Function hall', 'Garden nook', 'Firepit area'],
 		gallery: [],
-		image_seed: 'casa-verde'
+		image_seed: 'casa-verde',
+		latitude: 14.1752,
+		longitude: 121.1848
 	},
 	{
 		id: 'blue-lagoon',
 		slug: 'blue-lagoon',
 		name: 'Blue Lagoon Pool Villa',
-		location: 'Batangas',
+		location: 'Pansol, Calamba',
 		contact: '0919 444 5555 · fb.com/bluelagoonpoolvilla',
 		rate12: '₱7,200',
 		rate22: '₱10,500',
@@ -55,13 +59,15 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Kitchen use', 'Cookware', 'Free wifi'],
 		amenities: ['Videoke', 'Mini bar', 'Beach volleyball court'],
 		gallery: [],
-		image_seed: 'blue-lagoon'
+		image_seed: 'blue-lagoon',
+		latitude: 14.179,
+		longitude: 121.186
 	},
 	{
 		id: 'hidden-grove',
 		slug: 'hidden-grove',
 		name: 'Hidden Grove Resort',
-		location: 'Antipolo',
+		location: 'Pansol, Calamba',
 		contact: '0920 666 7777 · fb.com/hiddengroveresort',
 		rate12: '₱5,800',
 		rate22: '₱8,900',
@@ -72,30 +78,34 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Free parking', 'Nipa hut'],
 		amenities: ['Bilyar', 'Trampoline', 'Mini zipline'],
 		gallery: [],
-		image_seed: 'hidden-grove'
+		image_seed: 'hidden-grove',
+		latitude: 14.172,
+		longitude: 121.181
 	},
 	{
 		id: 'amihan-beach',
 		slug: 'amihan-beach',
-		name: 'Amihan Beach House',
-		location: 'Zambales',
+		name: 'Amihan Hot Spring Villa',
+		location: 'Bucal, Calamba',
 		contact: '0921 888 9999 · fb.com/amihanbeachhouse',
 		rate12: '₱11,000',
 		rate22: '₱16,500',
 		pax: '35 pax',
 		addPax: '₱200 / head',
 		rooms: '6 rooms, aircon',
-		pool: 'Beachfront, no pool',
-		inclusions: ['Towels', 'Beach access', 'Kitchen use', 'Grill area'],
-		amenities: ['Function hall', 'Bonfire pit', 'Kayaks (rental)'],
+		pool: 'Hot spring pool 4-5ft',
+		inclusions: ['Towels', 'Kitchen use', 'Grill area'],
+		amenities: ['Function hall', 'Bonfire pit', 'Videoke'],
 		gallery: [],
-		image_seed: 'amihan-beach'
+		image_seed: 'amihan-beach',
+		latitude: 14.195,
+		longitude: 121.176
 	},
 	{
 		id: 'terraza-sol',
 		slug: 'terraza-sol',
 		name: 'Terraza Del Sol',
-		location: 'Laguna',
+		location: 'Bagong Kalsada, Calamba',
 		contact: '0922 111 2222 · fb.com/terrazadelsol',
 		rate12: '₱6,900',
 		rate22: '₱10,200',
@@ -106,30 +116,34 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Free ice', 'Sound system'],
 		amenities: ['Videoke', 'Basketball court', 'Native huts'],
 		gallery: [],
-		image_seed: 'terraza-sol'
+		image_seed: 'terraza-sol',
+		latitude: 14.184,
+		longitude: 121.1895
 	},
 	{
 		id: 'coral-cove',
 		slug: 'coral-cove',
-		name: 'Coral Cove Resort',
-		location: 'Batangas',
+		name: 'Coral Cove Villa',
+		location: 'Lakewood, Los Baños',
 		contact: '0923 333 4444 · fb.com/coralcoveresort',
 		rate12: '₱9,500',
 		rate22: '₱14,000',
 		pax: '28 pax',
 		addPax: '₱180 / head',
 		rooms: '5 rooms, aircon',
-		pool: 'Saltwater pool 4-5ft',
-		inclusions: ['Towels', 'Snorkeling gear', 'Kitchen use'],
-		amenities: ['Bilyar', 'Diving deck', 'Beach bonfire spot'],
+		pool: 'Thermal pool 4-5ft',
+		inclusions: ['Towels', 'Kitchen use'],
+		amenities: ['Bilyar', 'Deck', 'Grill'],
 		gallery: [],
-		image_seed: 'coral-cove'
+		image_seed: 'coral-cove',
+		latitude: 14.173,
+		longitude: 121.205
 	},
 	{
 		id: 'palma-vista',
 		slug: 'palma-vista',
 		name: 'Palma Vista Villas',
-		location: 'Cavite',
+		location: 'Lalakay, Los Baños',
 		contact: '0924 555 6666 · fb.com/palmavistavillas',
 		rate12: '₱6,200',
 		rate22: '₱9,000',
@@ -140,13 +154,15 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Free parking', 'Gazebo'],
 		amenities: ['Videoke', 'Playground', 'Mini garden'],
 		gallery: [],
-		image_seed: 'palma-vista'
+		image_seed: 'palma-vista',
+		latitude: 14.179,
+		longitude: 121.201
 	},
 	{
 		id: 'rainmist',
 		slug: 'rainmist',
 		name: 'Rainmist Garden Resort',
-		location: 'Tagaytay',
+		location: 'Tadlac, Los Baños',
 		contact: '0925 777 8888 · fb.com/rainmistgarden',
 		rate12: '₱8,700',
 		rate22: '₱13,000',
@@ -157,13 +173,15 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Function hall', 'Free wifi', 'Cookware'],
 		amenities: ['Function hall', 'Bilyar', 'Garden lounge'],
 		gallery: [],
-		image_seed: 'rainmist'
+		image_seed: 'rainmist',
+		latitude: 14.182,
+		longitude: 121.218
 	},
 	{
 		id: 'sundown-point',
 		slug: 'sundown-point',
 		name: 'Sundown Point Resort',
-		location: 'Laguna',
+		location: 'Batong Malake, Los Baños',
 		contact: '0926 999 0000 · fb.com/sundownpoint',
 		rate12: '₱7,500',
 		rate22: '₱11,000',
@@ -174,7 +192,9 @@ export const resorts: Resort[] = [
 		inclusions: ['Towels', 'Kitchen use', 'Free ice', 'Sound system'],
 		amenities: ['Videoke', 'Basketball hoop', 'Firepit'],
 		gallery: [],
-		image_seed: 'sundown-point'
+		image_seed: 'sundown-point',
+		latitude: 14.168,
+		longitude: 121.24
 	}
 ];
 

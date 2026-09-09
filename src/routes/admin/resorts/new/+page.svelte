@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
 	import PhotoUploadDropzone from "$lib/components/PhotoUploadDropzone.svelte";
+	import MapPinPicker from "$lib/components/MapPinPicker.svelte";
 
 	let { form } = $props();
 	let submitting = $state(false);
 </script>
 
 <svelte:head>
-	<title>New Resort — Admin - balay archive</title>
+	<title>New Resort — Admin — balay</title>
 </svelte:head>
 
 <div class="form-page">
@@ -59,6 +60,10 @@
 					type="text"
 					placeholder="e.g. 0917-123-4567 | fb.com/villajudela"
 				/>
+			</div>
+
+			<div class="field full">
+				<MapPinPicker />
 			</div>
 
 			<div class="field">

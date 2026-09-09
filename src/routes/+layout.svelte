@@ -114,7 +114,7 @@
 </script>
 
 <svelte:head>
-	<title>HAVEN ARCHIVE — Private Resort Repository</title>
+	<title>balay</title>
 	<meta
 		name="description"
 		content="Browse curated private resorts with rates, amenities, and availability."

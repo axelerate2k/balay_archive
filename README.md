@@ -1,276 +1,225 @@
-# HAVEN Archive — implementation notes
+# Balay Archive — Technical Implementation Blueprint
 
-This file is the build spec for the photo carousel, the card→detail transition, and the Supabase backend. Written to be handed straight to a CLI coding agent.
-
----
-
-## 1. Concave cylindrical carousel
-
-### 1.1 Reference implementation (source of truth — verified correct)
-
-```html
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Concave Cylindrical Carousel</title>
-<style>
-* { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
-body {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #f8f4f4;
-  font-family: Inter, system-ui, sans-serif;
-}
-.scene, .a3d { display: grid; }
-.scene {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  perspective: 35em;
-  perspective-origin: 50% 50%;
-  mask: linear-gradient(90deg, #0000, red 20% 80%, #0000);
-  -webkit-mask: linear-gradient(90deg, #0000, red 20% 80%, #0000);
-}
-.a3d {
-  place-self: center;
-  transform-style: preserve-3d;
-  animation: none;
-  transform: rotateY(0deg);
-}
-.card {
-  --w: 17.5em;
-  --ba: 1turn/var(--n);
-  grid-area: 1/1;
-  width: var(--w);
-  aspect-ratio: 7/10;
-  object-fit: cover;
-  border-radius: 1.5em;
-  backface-visibility: hidden;
-  transform:
-    rotatey(calc(var(--i) * var(--ba)))
-    translatez(calc(-1 * (0.5 * var(--w) + 0.5em) / tan(0.5 * var(--ba))));
-  box-shadow: 0 16px 35px rgba(0,0,0,.14);
-}
-.caption {
-  position: absolute;
-  left: 50%;
-  bottom: 32px;
-  transform: translateX(-50%);
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.8);
-  color: #222;
-  font-size: 14px;
-  letter-spacing: .04em;
-  backdrop-filter: blur(8px);
-  z-index: 10;
-}
-@media (max-width: 768px) {
-  .card { --w: 12em; }
-  .scene { perspective: 25em; }
-}
-@media (min-width: 1200px) {
-  .card { --w: 20em; }
-  .scene { perspective: 45em; }
-}
-</style>
-</head>
-<body>
-<div class="scene">
-  <div class="a3d" style="--n: 7">
-    <img class="card" src="assets/panel1.jpg" style="--i: 0" alt="">
-    <img class="card" src="assets/panel2.jpg" style="--i: 1" alt="">
-    <img class="card" src="assets/panel3.jpg" style="--i: 2" alt="">
-    <img class="card" src="assets/panel4.jpg" style="--i: 3" alt="">
-    <img class="card" src="assets/panel5.jpg" style="--i: 4" alt="">
-    <img class="card" src="assets/panel6.jpg" style="--i: 5" alt="">
-    <img class="card" src="assets/panel7.jpg" style="--i: 6" alt="">
-  </div>
-  <div class="caption">CONCAVE CYLINDRICAL CAROUSEL</div>
-</div>
-</body>
-</html>
-```
-
-Key mechanics — keep these when porting:
-- `--n` (card count) and `--i` (per-card index) drive `--ba` (the angle between cards, `1turn / n`).
-- Each card's own transform never changes: `rotateY(i * ba) translateZ(-radius)`. The **negative** `translateZ` is what folds every card's face inward toward the shared center — flipping it to positive turns this into an outward-facing (convex) wheel instead.
-- `radius = (0.5 * width + gap) / tan(0.5 * ba)` — this is what keeps card edges touching regardless of card count or width. Recompute it whenever `--w` or `--n` changes; don't hardcode a px value.
-- The whole ring only ever gets one shared `rotateY(...)` on `.a3d` — that single value is what "spins" the carousel. Never touch individual card transforms after mount.
-- The `mask` gradient on `.scene` is what feathers the far-left/far-right cards into the background instead of hard-clipping them.
-
-### 1.2 Porting to Svelte — `CylinderCarousel.svelte`
-
-- Props: `images: string[]` (resort's `gallery` array), optional `caption?: string`.
-- `n = images.length`; loop with `{#each images as src, i}` and bind `style="--i: {i}"` on each `<img>`; bind `style="--n: {n}"` on the `.a3d` wrapper.
-- Rotation state: a single reactive `rotation` (degrees or turns) applied as `style="transform: rotateY({rotation}deg)"` on `.a3d`. Drive it from pointer drag (`pointerdown`/`pointermove`/`pointerup`) and wheel events, snapping to the nearest `360/n` step on release — same interaction model as the index/hover behavior already in `Card.svelte`.
-- **Make it fill the screen** (this was too narrow before):
-  - `.scene { width: 100%; height: 60vh; }` instead of a fixed `100vw` — it should size to whatever container it's placed in (the full-screen detail view described below), not the raw viewport.
-  - Card width should scale with viewport instead of a fixed `17.5em`: `--w: clamp(14em, 22vw, 24em);` on `.card`, and `perspective: clamp(28em, 40vw, 55em);` on `.scene` so wider screens get a deeper, more dramatic curve instead of the same fixed depth stretched wide.
-- Replace `assets/panelN.jpg` with `resort.gallery[i]` (Supabase Storage URLs — see §3.5).
+Comprehensive architectural specification and implementation roadmap for the **Balay Resort Archive** upgrades:
+1. **Auto-Slide Center Card Details** (Synching resort preview details on cascade motion)
+2. **Zero-API Map Pinning System** (Admin click-to-pin coordinate picker)
+3. **Interactive Bounded Map View** (Calamba–Pansol–Los Baños region with custom tile layer)
+4. **Kubo-Style Cluster Bubble & Dynamic Zoom-Scaled Markers** (Circular feature photos, price tags, and UP Oblation landmark)
+5. **Unified Price Filter System** (Reactive dual-rate price filtering across Map and Index views)
 
 ---
 
-## 2. Card → full-screen detail transition
+## 1. Feature Specifications
 
-Trigger: clicking a card in `CardCascade.svelte` (currently opens the small centered `ResortModal.svelte`). New behavior: the clicked card itself flattens and grows to fill the screen, then the resort details + `CylinderCarousel` fade in on top of it.
-
-Steps:
-
-1. **Capture the origin.** On click, before doing anything else, read `cardEl.getBoundingClientRect()` and `getComputedStyle(cardEl).transform` (the actual matrix3d string, which already encodes the cascade's tilt/position/hover offset — don't try to recompute this by hand). Store both in a `transitionOrigin` store alongside `selectedResort`.
-2. **Spawn the overlay pinned to that origin.** Render `ResortDetailView.svelte` as a `position: fixed` full-viewport element, but on its very first paint set its inner wrapper's inline style to exactly match the captured rect and transform (`top/left/width/height` + the matrix3d), with `transition: none`.
-3. **Flatten + grow, in the next frame.** On the following animation frame (`requestAnimationFrame`), remove the inline transform (back to identity) and set `top: 0; left: 0; width: 100vw; height: 100vh`, with a single `transition: all 0.6s cubic-bezier(0.22, 0.8, 0.25, 1)` covering both the transform and the box. The browser interpolates the un-rotate and the resize together — that's the "flattens into the screen" feel.
-4. **Reveal content after the shape settles.** Listen for `transitionend` on that property, then fade/translate in the resort details and the carousel (short 200–300ms opacity + `translateY(12px)→0`). Don't render the detail content until this fires — it shouldn't be visible mid-flatten.
-5. **Closing** reverses the same sequence: fade out content first, then animate the box/transform back to the stored `transitionOrigin`, then clear `selectedResort`.
-
-Note: the native View Transitions API (`document.startViewTransition`) can shortcut steps 2–3 for the size/position morph, but it does not interpolate arbitrary 3D rotation — you'd still need to manually reset the card's rotation to flat just before calling `startViewTransition`. The manual FLIP above is the version that actually reproduces the "flattens toward you" effect; treat View Transitions as an optional simplification only if you're willing to drop the rotation part.
+### 1.1 Auto-Sliding Card Details Reveal (Cascade Mode)
+* **Current Behavior**: When hovering over a card on desktop, `hoveredResort` is set in `$lib/stores/app`, revealing the floating `InfoPanel` at top-left (`name`, `rate12`, `rate22`, `pax`). Meanwhile, `.is-center` shifts the active card rightwards via `transform: translateX(...)`. On touch devices or auto-scroll, the card shifts right, but the info is not synchronized.
+* **New Behavior**:
+  * As the cascade scrolls and determines the `is-center` card (closest card to viewport focal point), the center card automatically updates the active preview state.
+  * In addition to updating the floating `InfoPanel`, an inline glassmorphic reveal tag or smooth card info badge reveals the resort's **Name**, **Pax capacity**, and **Price rates** right as the card slides right.
+  * Ensures seamless parity between mouse hover, manual drag, mouse wheel, and mobile snap-centering.
 
 ---
 
-## 3. Backend — Supabase (full CRUD spec)
+### 1.2 Zero-API Admin Map Pinning System
+* **Goal**: Enable admins to pinpoint the exact location of a resort during creation (`/admin/resorts/new`) and editing (`/admin/resorts/[id]/edit`) without geocoding APIs, billing, or external rate limits.
+* **Mechanics**:
+  * Integrated interactive Leaflet mini-map directly in the admin form.
+  * Default viewport centered over the Pansol/Los Baños resort belt (`14.1750° N, 121.1900° E`).
+  * Admin simply clicks anywhere within the bounded region to drop/drag a pin.
+  * Form inputs `latitude` and `longitude` (hidden or readonly inputs with quick reset button) are populated automatically on click.
+  * On edit, if coordinates exist, the pin is initialized at that exact position with pan-to animation.
 
-### 3.1 Project setup
+---
 
-```bash
-npm install @supabase/supabase-js @supabase/ssr
-```
+### 1.3 Interactive Map View (`MAP` Tab)
+* **Navigation**:
+  * `CornerNav.svelte` expanded from `OVERVIEW | INDEX` to `OVERVIEW | INDEX | MAP`.
+  * Keyboard shortcut or URL state synchronization (`activeView` store supports `'overview' | 'index' | 'map'`).
+* **Map Engine & Tile Layer**:
+  * Built using **Leaflet** with **CartoDB Positron** or **OpenStreetMap** raster tiles (zero-cost, no API key).
+  * Styled to match Balay’s warm minimalist aesthetic (`#f6f5f3` background, muted typography).
+* **Cropped Geographical Boundaries (`maxBounds`)**:
+  * Restricted strictly to the Calamba–Pansol–Los Baños resort corridor.
+  * `maxBounds`:
+    * Southwest: `[14.1200, 121.1200]` (Mt. Makiling base / Calamba outskirts)
+    * Northeast: `[14.2300, 121.2700]` (Laguna de Bay shore / Los Baños boundary)
+  * Users cannot pan or zoom out into the rest of the Philippines or open ocean.
+  * Min zoom: `13`, Max zoom: `18`, Default initial zoom: `14.5`.
 
-Env vars (`.env`):
-```
-PUBLIC_SUPABASE_URL=...
-PUBLIC_SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...   # server-only, never shipped to the client
-```
+---
 
-### 3.2 Schema
+### 1.4 Kubo-Style Bubble Clustering & Dynamic Zoom Pins
+Referencing the campus dorm platform UI:
+* **Cluster Bubbles**:
+  * Powered by `leaflet.markercluster` with custom CSS styling to match Balay branding.
+  * When pins overlap at lower zoom levels, they coalesce into an elegant circular bubble with resort count (e.g. `2`, `5`).
+  * Clicking a cluster smoothly zooms in and expands (`spiderfies` or decomposes) into individual pins.
+* **Individual Resort Pins**:
+  * Custom Leaflet `divIcon`:
+    * Circular avatar featuring the resort's primary cover image (`gallery[0]` or fallback seed image).
+    * Attached sleek price pill badge (e.g., `₱6,500` or `₱12,000`).
+    * Drop shadow and subtle glass border (`rgba(19, 19, 19, 0.15)`).
+  * **Hover Interaction**: Hovering displays a minimalist tooltip with the resort name, location, and pax.
+  * **Click Interaction**: Clicking transitions smoothly into the resort's dedicated page (`/{slug}`).
+* **Dynamic Zoom Scaling**:
+  * Both resort pins and the Oblation landmark dynamically scale their CSS transform size based on `map.getZoom()`.
+  * High zoom (e.g. zoom 17–18): Full size (52px avatar + expanded label).
+  * Mid zoom (e.g. zoom 14–15): Medium size (38px avatar + compact badge).
+  * Low zoom (e.g. zoom 13): Compact dot avatar (28px).
+* **UP Oblation Landmark Marker**:
+  * Dedicated anchor point at UPLB Oblation Park (`14.1656° N, 121.2414° E`).
+  * Displays a stylized silhouette / graphic of the UP Oblation with label "UPLB Oblation".
+  * Acts as the primary regional anchor orientation point for visitors viewing Los Baños vs Pansol/Calamba.
+
+---
+
+### 1.5 Price Range Filtering (Map & Index Views)
+* **Price Parsing Engine**:
+  * Resorts store rates as free-form strings (`rate_12h`: "₱6,500", `rate_22h`: "₱12,000 - ₱14,000").
+  * Robust numerical parser extracts the numeric values (`parsePrice(resort.rate12)` and `parsePrice(resort.rate22)`).
+* **Index View Controls**:
+  * Integrated alongside the existing text search bar:
+    * Price bracket dropdown or min/max slider (e.g., "All Prices", "Under ₱8,000", "₱8,000 – ₱15,000", "₱15,000+").
+    * Rate toggle: Filter by **12h Rate** or **22h (Overnight) Rate**.
+  * Matches the table filter in real time with active resort counter.
+* **Map View Controls**:
+  * Floating glassmorphic control bar on top/bottom of the map.
+  * Filtering dynamically adds/removes markers from the marker cluster group with animated transitions.
+  * Live status indicator: `"Showing X of Y resorts in area"`.
+
+---
+
+## 2. Database Schema & Data Modeling
+
+### 2.1 Postgres / Supabase Schema Update
+Add `latitude` and `longitude` fields to the `resorts` table:
 
 ```sql
-create table resorts (
-  id uuid primary key default gen_random_uuid(),
-  slug text unique not null,
-  name text not null,
-  location text not null,
-  contact text,
-  rate_12h text,
-  rate_22h text,
-  pax text,
-  add_pax_rate text,
-  rooms text,
-  pool text,
-  inclusions text[] default '{}',
-  amenities text[] default '{}',
-  gallery text[] default '{}',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+-- Migration: Add geolocation coordinates to resorts table
+alter table resorts
+  add column if not exists latitude double precision,
+  add column if not exists longitude double precision;
 
-create table allowed_users (
-  email text primary key,
-  role text not null default 'viewer' check (role in ('viewer','admin')),
-  added_at timestamptz default now()
-);
+-- Optional spatial index for coordinate querying
+create index if not exists idx_resorts_lat_lng on resorts(latitude, longitude);
 ```
 
-### 3.3 Row Level Security
-
-```sql
-alter table resorts enable row level security;
-alter table allowed_users enable row level security;
-
-create or replace function is_allowed_user()
-returns boolean language sql stable as $$
-  select exists (
-    select 1 from allowed_users where email = auth.jwt() ->> 'email'
-  );
-$$;
-
-create or replace function is_admin_user()
-returns boolean language sql stable as $$
-  select exists (
-    select 1 from allowed_users
-    where email = auth.jwt() ->> 'email' and role = 'admin'
-  );
-$$;
-
-create policy "allowed users can read resorts"
-  on resorts for select using (is_allowed_user());
-
-create policy "admins can insert resorts"
-  on resorts for insert with check (is_admin_user());
-
-create policy "admins can update resorts"
-  on resorts for update using (is_admin_user());
-
-create policy "admins can delete resorts"
-  on resorts for delete using (is_admin_user());
-
-create policy "admins can read allowed_users"
-  on allowed_users for select using (is_admin_user());
-
-create policy "admins can manage allowed_users"
-  on allowed_users for all using (is_admin_user()) with check (is_admin_user());
-```
-
-### 3.4 Auth (Google sign-in, restricted to the allow-list)
-
-1. In the Supabase dashboard: enable the Google provider, plug in the OAuth client ID/secret from Google Cloud Console, set the redirect URL.
-2. Client sign-in call:
-   ```ts
-   await supabase.auth.signInWithOAuth({
-     provider: 'google',
-     options: { redirectTo: `${origin}/auth/callback` }
-   });
-   ```
-3. `hooks.server.ts` — use `@supabase/ssr`'s `createServerClient` to read/write the session cookie on every request.
-4. **Allow-list gate** (`+layout.server.ts` for the main app): after auth, query `allowed_users` for the session's email. If no row exists, sign the user out server-side and render an "access restricted" page — don't just hide UI, actually block the load function from returning resort data.
-5. **Admin gate** (`/admin/+layout.server.ts`): same check, additionally requiring `role = 'admin'`. Redirect non-admins to `/`.
-
-### 3.5 Storage (resort photos)
-
-- Bucket: `resort-photos`. Given the "selected emails only" model, make it **private** (not public) and read via signed URLs rather than a public bucket — keeps photo access consistent with the rest of the access model.
-- Storage policies: admins get `insert`/`update`/`delete`; allowed users get `select` (via `is_allowed_user()`), same pattern as §3.3.
-- Upload (admin panel):
-  ```ts
-  const { data, error } = await supabase.storage
-    .from('resort-photos')
-    .upload(`${resortId}/${file.name}`, file);
-  ```
-  Store the resulting path in `resorts.gallery`; generate a signed URL per image when rendering (`createSignedUrl(path, expiresInSeconds)`), don't store the signed URL itself since it expires.
-
-### 3.6 CRUD operations
-
+### 2.2 TypeScript Model Update (`src/lib/types/resort.ts`)
 ```ts
-// list
-const { data } = await supabase.from('resorts').select('*').order('created_at');
-
-// get one
-const { data } = await supabase.from('resorts').select('*').eq('slug', slug).single();
-
-// create (admin only — enforced by RLS, not just UI)
-const { data, error } = await supabase.from('resorts').insert({ ...fields }).select().single();
-
-// update
-const { error } = await supabase.from('resorts').update({ ...fields }).eq('id', id);
-
-// delete
-const { error } = await supabase.from('resorts').delete().eq('id', id);
+export interface Resort {
+	id: string;
+	slug: string;
+	name: string;
+	location: string;
+	contact: string;
+	rate12: string;
+	rate22: string;
+	pax: string;
+	addPax: string;
+	rooms: string;
+	pool: string;
+	inclusions: string[];
+	amenities: string[];
+	gallery: string[];
+	image_seed: string;
+	latitude?: number | null;
+	longitude?: number | null;
+	created_at?: string;
+	updated_at?: string;
+}
 ```
 
-Run every admin mutation through a `+page.server.ts` form action or API route using the **session-scoped** client — never the service-role key in a code path a non-admin request could hit. RLS is what actually enforces "admin only," not the UI gating.
+---
 
-### 3.7 Suggested build order (for the CLI)
+## 3. Architecture & Component Blueprint
 
-1. Create Supabase project → run schema + RLS SQL above.
-2. `src/lib/server/supabase.ts` — server client factory (`@supabase/ssr`).
-3. `src/lib/supabaseClient.ts` — browser client.
-4. `hooks.server.ts` — session handling.
-5. `+layout.server.ts` — allow-list gate (main app) and `/admin/+layout.server.ts` (admin gate).
-6. Swap the mock `resorts.ts` array for real Supabase queries in `+page.server.ts` load functions — `Resort` type stays the same shape, just add `gallery: string[]` and `slug: string`.
-7. Build `/admin` CRUD routes (list, create/edit form, delete confirm) + image upload to `resort-photos`.
-8. Build `CylinderCarousel.svelte` (§1.2) and the card→full-screen transition (§2).
-9. Wire `resort.gallery` (signed URLs) into the carousel.
+```
+src/
+├── lib/
+│   ├── components/
+│   │   ├── Card.svelte               <- Add center-reveal details badge
+│   │   ├── CardCascade.svelte        <- Update center-index change dispatching
+│   │   ├── CornerNav.svelte          <- Add MAP tab button
+│   │   ├── IndexView.svelte          <- Add Price Range Filter UI
+│   │   ├── InfoPanel.svelte          <- Reactive to center & hover triggers
+│   │   ├── MapPinPicker.svelte       <- Admin click-to-pin Leaflet component
+│   │   ├── MapView.svelte            <- Public interactive clustered map
+│   │   └── TopNav.svelte
+│   ├── data/
+│   │   └── priceUtils.ts             <- Price parsing & filtering helpers
+│   ├── stores/
+│   │   └── app.ts                    <- activeView: 'overview' | 'index' | 'map'
+│   └── types/
+│       └── resort.ts                 <- latitude & longitude properties
+└── routes/
+    ├── +page.svelte                  <- Render MapView when activeView === 'map'
+    ├── +page.server.ts               <- Fetch & pass lat/lng
+    └── admin/
+        └── resorts/
+            ├── new/+page.svelte      <- Include MapPinPicker
+            ├── new/+page.server.ts   <- Insert latitude, longitude
+            ├── [id]/edit/+page.svelte<- Include MapPinPicker with initial coords
+            └── [id]/edit/+page.server.ts <- Update latitude, longitude
+```
+
+---
+
+## 4. Implementation Step-by-Step Plan
+
+### Phase 1: Card Slide Details & Price Utilities
+1. **`src/lib/data/priceUtils.ts`**:
+   * Implement `parsePrice(str: string): number | null` (strips `₱`, `,`, extra characters; extracts lowest numeric integer).
+   * Implement `filterResortsByPrice(resorts, minPrice, maxPrice, rateType)`.
+2. **`src/lib/components/CardCascade.svelte` & `Card.svelte`**:
+   * On center index change, update active resort in store.
+   * Add slide details overlay on `.card-inner`: when shifted right (`is-center` or `:hover`), render sleek glass info tag displaying resort name, rate, and pax.
+3. **`src/lib/components/InfoPanel.svelte`**:
+   * Ensure mobile and desktop properly display information when sliding triggers.
+
+### Phase 2: Geolocation Schema & Admin Pin Picker
+1. **Supabase Schema**:
+   * Execute migration adding `latitude` and `longitude` to `resorts`.
+2. **`src/lib/components/MapPinPicker.svelte`**:
+   * Leaflet map with Pansol/Calamba/Los Baños bounds.
+   * Click listener that moves a custom Balay marker and emits `[lat, lng]`.
+3. **Admin Forms Integration**:
+   * Integrate `MapPinPicker` in `/admin/resorts/new` and `/admin/resorts/[id]/edit`.
+   * Bind to form submission payloads in `+page.server.ts`.
+
+### Phase 3: Public Map View with Clustering & Zoom Sizing
+1. **Dependencies**:
+   * Install `leaflet`, `@types/leaflet`, and `leaflet.markercluster`.
+   * Add required Leaflet and Cluster CSS in `app.html` or scoped imports.
+2. **`src/lib/components/MapView.svelte`**:
+   * Initialize Leaflet map with bounded view:
+     * Center: Pansol/Los Baños (`[14.1720, 121.1920]`).
+     * `maxBounds`: strictly Calamba to Los Baños.
+   * Add **UP Oblation Landmark Marker** at Oblation Park (`[14.1656, 121.2414]`) with dynamic zoom scaling.
+   * Add **MarkerClusterGroup** with customized circular count bubbles.
+   * Construct circular resort pins using `L.divIcon` displaying the cover photo, resort name tooltip, and price pill.
+   * Listen to `zoomend` to scale pin dimensions accordingly.
+   * Pin click triggers navigation to `/{resort.slug}`.
+
+### Phase 4: Price Filter Integration & Tab Switching
+1. **`src/lib/stores/app.ts`**:
+   * Update `activeView` to `'overview' | 'index' | 'map'`.
+2. **`src/lib/components/CornerNav.svelte`**:
+   * Add the `MAP` mode switch button.
+3. **`src/lib/components/IndexView.svelte`**:
+   * Add price filter inputs / quick-filter pills (e.g., `Any`, `≤ ₱8k`, `₱8k-₱12k`, `≥ ₱12k`).
+4. **`src/lib/components/MapView.svelte`**:
+   * Add floating map filter bar allowing live rate filtering (updating visible map markers and cluster counts).
+
+---
+
+## 5. Verification & Testing Matrix
+
+| Feature | Test Case | Success Criteria |
+| :--- | :--- | :--- |
+| **Card Slide Info** | Drag/scroll cascade on desktop & mobile | As card slides right, name, pax, and price details become clearly visible without overlapping. |
+| **Admin Pin Picker**| Create / Edit resort in `/admin` | Clicking mini-map sets coordinates; submitting saves lat/lng to Supabase and reloads properly on edit. |
+| **Map Boundaries**  | Pan to edge of map in `MAP` view | Map stops panning outside Calamba, Pansol, and Los Baños boundaries. |
+| **Marker Clustering**| Zoom in/out on multiple nearby resorts | Overlapping pins combine into clean numbered bubbles; zooming in dissolves clusters into individual photo pins. |
+| **UP Oblation Marker**| Inspect UPLB campus area | Oblation icon clearly visible with label; scales smoothly when zooming in/out. |
+| **Price Filtering** | Adjust price filter in Map and Index | List and map pins filter in real time; cluster counts recalculate instantly. |
+| **Navigation**      | Click pin on map | Smoothly routes to `/{slug}` full resort view. |

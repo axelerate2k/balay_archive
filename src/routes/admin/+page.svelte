@@ -6,7 +6,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin — Resorts — HAVEN Archive</title>
+	<title>Admin — Resorts — balay</title>
 </svelte:head>
 
 <div class="admin-page">

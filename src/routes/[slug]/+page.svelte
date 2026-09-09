@@ -18,7 +18,7 @@
 </script>
 
 <svelte:head>
-	<title>{resort.name} — BALAY ARCHIVE</title>
+	<title>{resort.name} — balay</title>
 	<meta
 		name="description"
 		content="Archive specifications for {resort.name} in {resort.location}. Rates, capacity, pool specifications, and amenities."

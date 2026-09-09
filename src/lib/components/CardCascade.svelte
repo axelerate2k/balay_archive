@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Resort } from '$lib/types/resort';
+	import { hoveredResort } from '$lib/stores/app';
 	import Card from './Card.svelte';
 
 	interface Props {
@@ -96,6 +97,9 @@
 					card.classList.remove('is-center');
 				}
 			});
+			if (activeIdx >= 0 && cascadeItems[activeIdx]) {
+				hoveredResort.set(cascadeItems[activeIdx]);
+			}
 		}
 	}
 

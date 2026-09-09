@@ -1,8 +1,8 @@
 import { writable } from 'svelte/store';
 import type { Resort } from '$lib/types/resort';
 
-/** Current view: 'overview' (cascade) or 'index' (table) */
-export const activeView = writable<'overview' | 'index'>('overview');
+/** Current view: 'overview' (cascade), 'index' (table), or 'map' (interactive map) */
+export const activeView = writable<'overview' | 'index' | 'map'>('overview');
 
 /** Currently hovered resort (drives the floating info panel) */
 export const hoveredResort = writable<Resort | null>(null);
